@@ -1,7 +1,7 @@
 /*
 Copyright (c) 2019 Yves D'hondt
 This software was released under the MIT license.
-For more details see the file 'LICENSE' that should have been included
+For more details see the 'LICENSE' file that should have been included
 with this software.
 */
 
@@ -10,24 +10,70 @@ with this software.
 % Keys MUST be integers/They must pass the integer/1 check
 % --- Operations & Helpers --- %
 
+% elem(Key,Tree)
 % elem/2: Check whether the key is in the tree
 elem(Key,Tree) :-
-    elem(Key,Tree,_).
+    elem(Key,_,Tree).
 
+% elem(Key,Tree,Value)
 % elem/3: Check whether the key is in the tree and return the associated
 % value
-elem(Key,node(_,_,_,_,Key,Value),Value) :- !.
-elem(Key,node(_,L,_,_,_,_),Value) :-
-    elem(Key,L,Value),
+elem(Key,Value,node(_,_,_,_,Key,Value)) :- !.
+elem(Key,Value,node(_,L,_,_,K,_)) :-
+    Key < K,
+    elem(Key,Value,L),
     !.
-elem(Key,node(_,R,_,_,_,_),Value) :-
-    elem(Key,R,Value).
+elem(Key,Value,node(_,_,R,_,K,_)) :-
+    Key > K,
+    elem(Key,Value,R).
 
+% add(Key,Value,OldTree,NewTree)
+% add/4: Check whether the new tree is equal to the old tree, with the
+% new key-value pair in it
+% There are four cases to add a value to a (sub)tree: the tree is empty,
+% the key is equal to the tree's key, the key is smaller than the tree's
+% key, and the key is larger than the tree's key
 add(Key,Value,nil,node(nil,nil,nil,black,Key,Value)) :-
     integer(Key),
     !.
-add(Key,Value,node(P,L,R,C,Key,_),node(P,L,R,C,Key,Value)).
+add(Key,Value,node(P,L,R,C,Key,_),node(P,L,R,C,Key,Value)) :- !.
+add(Key,Value,Tree,NewTree) :-
+    Tree = node(P,L,R,C,K,V),
+    Key < K,
+    !,
+    add(Key,Value,L,NewL),
+    fix_up(node(P,NewL,R,C,K,V),NewTree).
+add(Key,Value,Tree,NewTree) :-
+    Tree = node(P,L,R,C,K,V),
+    Key > K,
+    add(Key,Value,R,NewR),
+    fix_up(node(P,L,NewR,C,K,V),NewTree).
 
+% Fix up all colours
+fix_up(Tree,NewTree) :-
+    left_child(L,Tree),
+    \+ is_red(L),
+    right_child(R,Tree),
+    is_red(R),
+    !,
+    rotate_left(Tree,NewTree).
+fix_up(Tree,NewTree) :-
+    left_child(L,Tree),
+    is_red(L),
+    left_child(LL,L),
+    is_red(LL),
+    !,
+    rotate_right(Tree,NewTree).
+fix_up(Tree,NewTree) :-
+    left_child(L,Tree),
+    is_red(L),
+    right_child(R,Tree),
+    is_red(R),
+    !,
+    flip_colors(Tree,NewTree).
+% WATCH OUT! This implementation uses a red-cut, removing this cut will
+% lead to an incorrect program execution
+fix_up(Tree,Tree).
 
 % --- DATA STRUCTURE --- %
 % --- BASIC PROPERTIES --- %
@@ -49,6 +95,9 @@ is_empty(nil).
 % The root node has no parent
 parent(node(P,_,_,_,_,_),P) :-
     P \= nil.
+
+left_child(L,node(_,L,_,_,_,_)).
+right_child(R,node(_,_,R,_,_,_)).
 
 % The children of the root node have no parent
 grandparent(X,Gp) :-
