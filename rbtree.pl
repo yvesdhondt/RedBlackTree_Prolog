@@ -118,7 +118,7 @@ uncle(X,U) :-
 aunt(X,U) :-
     uncle(X,U).
 
-% --- ELEMENTARY OPERATIONS --- %
+% --- ELEMENTARY HELPERS --- %
 
 rotate_left(H,XNew) :-
     H = node(P,L1,X,C1,K1,V1),
